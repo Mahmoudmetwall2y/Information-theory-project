@@ -1,0 +1,4 @@
+Information theory is the study of quantifying information.
+Huffman coding provides optimal prefix codes.
+Hamming codes allow detection and correction of errors.
+This project demonstrates both source coding and channel coding.
