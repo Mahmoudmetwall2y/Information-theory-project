@@ -1,0 +1,9 @@
+part1_symbols.txt
+__pycache__
+huffman_codes.txt
+part2_bits.txt
+part3_decoded.txt
+part4_hamming_bits.txt
+part4_pad.txt
+part5_corrupted_bits.txt
+part6_recovered_bits.txt
