@@ -8,15 +8,21 @@ from codec import run_full_pipeline
 
 app = Flask(__name__)
 
+<<<<<<< Updated upstream
 # Where to save all runs
+=======
+>>>>>>> Stashed changes
 RUNS_DIR = Path("runs")
 
 
 def make_run_dir() -> Path:
+<<<<<<< Updated upstream
     """
     Create a unique run folder:
     runs/2025-12-12_20-15-30/
     """
+=======
+>>>>>>> Stashed changes
     RUNS_DIR.mkdir(exist_ok=True)
     stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     run_dir = RUNS_DIR / stamp
@@ -29,6 +35,7 @@ def write_file(path: Path, content: str) -> None:
 
 
 def save_part_outputs(run_dir: Path, original_text: str, interval: int, results: dict) -> None:
+<<<<<<< Updated upstream
     """
     Create files for each project part exactly as separate artifacts.
     Also saves a HTML report preview (GUI snapshot).
@@ -38,19 +45,30 @@ def save_part_outputs(run_dir: Path, original_text: str, interval: int, results:
 
     # -------- Part 1: symbols + probabilities
     # Format: repr(symbol)\tprobability
+=======
+    # Input copy
+    write_file(run_dir / "Text.txt", original_text)
+
+    # Part 1: probabilities
+>>>>>>> Stashed changes
     probs = results["probabilities"]
     part1_lines = ["# symbol\tprobability"]
     for sym, p in sorted(probs.items(), key=lambda kv: kv[0]):
         part1_lines.append(f"{repr(sym)}\t{p:.10f}")
     write_file(run_dir / "part1_symbols.txt", "\n".join(part1_lines))
 
+<<<<<<< Updated upstream
     # -------- Support: Huffman codes table
+=======
+    # Huffman codes
+>>>>>>> Stashed changes
     codes = results["codes"]
     codes_lines = ["# symbol\tcode"]
     for sym, code in sorted(codes.items(), key=lambda kv: kv[0]):
         codes_lines.append(f"{repr(sym)}\t{code}")
     write_file(run_dir / "huffman_codes.txt", "\n".join(codes_lines))
 
+<<<<<<< Updated upstream
     # -------- Part 2: binary sequence after Huffman
     write_file(run_dir / "part2_bits.txt", results["encoded_bits"])
 
@@ -68,6 +86,23 @@ def save_part_outputs(run_dir: Path, original_text: str, interval: int, results:
     write_file(run_dir / "part6_recovered_bits.txt", results["recovered_bits"])
 
     # -------- Extra: a machine-readable summary
+=======
+    # Part 2–6 core
+    write_file(run_dir / "part2_bits.txt", results["encoded_bits"])
+    write_file(run_dir / "part3_decoded.txt", results["decoded_text"])
+    write_file(run_dir / "part4_hamming_bits.txt", results["hamming_bits"])
+    write_file(run_dir / "part4_pad.txt", str(results["pad_bits"]))
+    write_file(run_dir / "part5_corrupted_bits.txt", results["corrupted_bits"])
+
+    # NEW: corrupted decode artifacts
+    write_file(run_dir / "part5b_corrupted_data_bits.txt", results["corrupted_data_bits"])
+    write_file(run_dir / "part5c_corrupted_decoded_text.txt", results["corrupted_decoded_text"])
+    write_file(run_dir / "part5c_corrupted_decode_ok.txt", str(results["corrupted_decode_ok"]))
+
+    write_file(run_dir / "part6_recovered_bits.txt", results["recovered_bits"])
+
+    # Summary JSON
+>>>>>>> Stashed changes
     summary = {
         "error_interval": interval,
         "text_length_symbols": results["text_length"],
@@ -76,11 +111,19 @@ def save_part_outputs(run_dir: Path, original_text: str, interval: int, results:
         "pad_bits": results["pad_bits"],
         "huffman_ok": results["huffman_ok"],
         "hamming_ok": results["hamming_ok"],
+<<<<<<< Updated upstream
     }
     write_file(run_dir / "summary.json", json.dumps(summary, indent=2))
 
     # -------- Extra: HTML report (GUI preview snapshot)
     # We reuse the same HTML template and render it into a file.
+=======
+        "corrupted_decode_ok": results["corrupted_decode_ok"],
+    }
+    write_file(run_dir / "summary.json", json.dumps(summary, indent=2))
+
+    # Save GUI report (HTML)
+>>>>>>> Stashed changes
     probs_sample = sorted(probs.items(), key=lambda kv: -kv[1])[:10]
     original_preview = original_text[:300]
     decoded_preview = results["decoded_text"][:300]
@@ -93,7 +136,11 @@ def save_part_outputs(run_dir: Path, original_text: str, interval: int, results:
         decoded_preview=decoded_preview,
         last_run_path=str(run_dir),
         interval_value=interval,
+<<<<<<< Updated upstream
         embed_mode=True,  # tells template it's being saved as report
+=======
+        embed_mode=True,
+>>>>>>> Stashed changes
     )
     write_file(run_dir / "report.html", report_html)
 
@@ -106,8 +153,8 @@ HTML_TEMPLATE = r"""
   <title>Information Theory Studio</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Google Font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<<<<<<< Updated upstream
 
   <!-- Bootstrap 5 -->
   <link
@@ -121,6 +168,10 @@ HTML_TEMPLATE = r"""
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
   >
+=======
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+>>>>>>> Stashed changes
 
   <style>
     :root {
@@ -145,6 +196,7 @@ HTML_TEMPLATE = r"""
       position: relative;
       overflow: hidden;
     }
+<<<<<<< Updated upstream
     .blob {
       position: absolute;
       border-radius: 999px;
@@ -152,6 +204,9 @@ HTML_TEMPLATE = r"""
       opacity: 0.38;
       pointer-events: none;
     }
+=======
+    .blob { position: absolute; border-radius: 999px; filter: blur(48px); opacity: 0.38; pointer-events: none; }
+>>>>>>> Stashed changes
     .blob-1 { width: 380px; height: 380px; background: #38bdf8; top: -120px; left: -60px; }
     .blob-2 { width: 420px; height: 420px; background: #a855f7; bottom: -140px; right: -120px; }
 
@@ -261,10 +316,14 @@ HTML_TEMPLATE = r"""
       margin: 1rem 0 1.5rem;
     }
 
+<<<<<<< Updated upstream
     .hint {
       color: var(--text-muted);
       font-size: 0.85rem;
     }
+=======
+    .hint { color: var(--text-muted); font-size: 0.85rem; }
+>>>>>>> Stashed changes
   </style>
 </head>
 
@@ -274,7 +333,6 @@ HTML_TEMPLATE = r"""
   <div class="blob blob-2"></div>
 
   <div class="app-card">
-    <!-- Header -->
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
       <div>
         <div class="pill-soft mb-2">
@@ -295,12 +353,21 @@ HTML_TEMPLATE = r"""
               Huffman OK: {{ results.huffman_ok }}
             </span>
           </div>
-          <div>
+          <div class="mb-2">
             <span class="pill-status {{ 'ok' if results.hamming_ok else 'bad' }}">
               <i class="bi {{ 'bi-check-circle' if results.hamming_ok else 'bi-x-circle' }}"></i>
               Hamming OK: {{ results.hamming_ok }}
             </span>
           </div>
+<<<<<<< Updated upstream
+=======
+          <div>
+            <span class="pill-status {{ 'ok' if results.corrupted_decode_ok else 'bad' }}">
+              <i class="bi {{ 'bi-check-circle' if results.corrupted_decode_ok else 'bi-x-circle' }}"></i>
+              Corrupted Decode OK: {{ results.corrupted_decode_ok }}
+            </span>
+          </div>
+>>>>>>> Stashed changes
         {% else %}
           <div class="hint mt-2">Upload a .txt file to run Parts 1–6.</div>
         {% endif %}
@@ -308,22 +375,33 @@ HTML_TEMPLATE = r"""
     </div>
 
     {% if not embed_mode %}
+<<<<<<< Updated upstream
     <!-- Controls (only show in live GUI, not in saved report) -->
+=======
+>>>>>>> Stashed changes
     <form method="post" enctype="multipart/form-data" class="mb-4">
       <div class="row g-3 align-items-end">
         <div class="col-md-6">
           <label class="form-label fw-semibold small mb-1">Source Text File (Text.txt)</label>
           <input type="file" name="textfile" accept=".txt" class="form-control glass-input" required>
+<<<<<<< Updated upstream
           <div class="form-text" style="color: var(--text-muted);">
             Any UTF-8 .txt file can be used as the message source.
           </div>
+=======
+          <div class="form-text" style="color: var(--text-muted);">Any UTF-8 .txt file can be used as the message source.</div>
+>>>>>>> Stashed changes
         </div>
         <div class="col-md-3">
           <label class="form-label fw-semibold small mb-1">Error Interval (Part 5)</label>
           <input type="number" name="interval" value="{{ interval_value or 50 }}" min="1" class="form-control glass-input">
+<<<<<<< Updated upstream
           <div class="form-text" style="color: var(--text-muted);">
             Flip one bit every N bits in the Hamming stream.
           </div>
+=======
+          <div class="form-text" style="color: var(--text-muted);">Flip one bit every N bits in the Hamming stream.</div>
+>>>>>>> Stashed changes
         </div>
         <div class="col-md-3 text-md-end">
           <button type="submit" class="btn btn-primary-modern mt-2 mt-md-0">
@@ -398,24 +476,51 @@ HTML_TEMPLATE = r"""
             <pre>{{ results.corrupted_bits[:200] }}{% if results.corrupted_bits|length > 200 %}...{% endif %}</pre>
           </div>
 
+<<<<<<< Updated upstream
           <div>
+=======
+          <!-- NEW -->
+          <div class="mb-3">
+            <div class="hint mb-1">Part 5b – Corrupted data bits (no correction, first 200 bits)</div>
+            <pre>{{ results.corrupted_data_bits[:200] }}{% if results.corrupted_data_bits|length > 200 %}...{% endif %}</pre>
+          </div>
+
+          <div class="mb-3">
+>>>>>>> Stashed changes
             <div class="hint mb-1">Part 6 – Recovered bits (first 200 bits)</div>
             <pre>{{ results.recovered_bits[:200] }}{% if results.recovered_bits|length > 200 %}...{% endif %}</pre>
           </div>
         </div>
 
-        <div>
-          <div class="section-title"><span>Part 3 – Text Round Trip</span></div>
+        <div class="mb-4">
+          <div class="section-title"><span>Text Views</span></div>
           <div class="row g-3">
             <div class="col-md-6">
+<<<<<<< Updated upstream
               <div class="hint mb-1">Original text (first 300 chars)</div>
               <pre>{{ original_preview }}</pre>
             </div>
             <div class="col-md-6">
               <div class="hint mb-1">Decoded via Huffman (first 300 chars)</div>
+=======
+              <div class="hint mb-1">Part 3 – Original text (first 300 chars)</div>
+              <pre>{{ original_preview }}</pre>
+            </div>
+            <div class="col-md-6">
+              <div class="hint mb-1">Part 3 – Decoded via Huffman (first 300 chars)</div>
+>>>>>>> Stashed changes
               <pre>{{ decoded_preview }}</pre>
             </div>
           </div>
+        </div>
+
+        <!-- NEW -->
+        <div>
+          <div class="section-title"><span>Corrupted Decode (No Correction)</span></div>
+          <div class="hint mb-1">
+            Part 5c – Huffman-decoded text from corrupted data bits (first 300 chars)
+          </div>
+          <pre>{{ results.corrupted_decoded_text[:300] }}{% if results.corrupted_decoded_text|length > 300 %}...{% endif %}</pre>
         </div>
 
       </div>
@@ -462,11 +567,17 @@ def index():
 
     results = run_full_pipeline(text, error_interval=interval)
 
+<<<<<<< Updated upstream
     # Save outputs to a new run folder
     run_dir = make_run_dir()
     save_part_outputs(run_dir, text, interval, results)
 
     # For on-page display
+=======
+    run_dir = make_run_dir()
+    save_part_outputs(run_dir, text, interval, results)
+
+>>>>>>> Stashed changes
     probs_sample = sorted(results["probabilities"].items(), key=lambda kv: -kv[1])[:10]
     original_preview = text[:300]
     decoded_preview = results["decoded_text"][:300]

@@ -2,14 +2,17 @@
 import collections
 import heapq
 import random
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
-# ---------------------
-# Huffman structures
-# ---------------------
 
 class HuffmanNode:
-    def __init__(self, symbol=None, prob: float = 0.0, left=None, right=None):
+    def __init__(
+        self,
+        symbol: Optional[str] = None,
+        prob: float = 0.0,
+        left: Optional["HuffmanNode"] = None,
+        right: Optional["HuffmanNode"] = None,
+    ):
         self.symbol = symbol
         self.prob = prob
         self.left = left
@@ -19,10 +22,6 @@ class HuffmanNode:
         return self.prob < other.prob
 
 
-# ---------------------
-# Part 1 – probabilities
-# ---------------------
-
 def compute_symbol_probabilities(text: str) -> Dict[str, float]:
     if not text:
         return {}
@@ -31,16 +30,13 @@ def compute_symbol_probabilities(text: str) -> Dict[str, float]:
     return {sym: counts[sym] / total for sym in counts}
 
 
-# ---------------------
-# Huffman (Parts 2–3)
-# ---------------------
-
-def build_huffman_tree(probabilities: Dict[str, float]) -> HuffmanNode:
+def build_huffman_tree(probabilities: Dict[str, float]) -> Optional[HuffmanNode]:
     heap: List[HuffmanNode] = [HuffmanNode(sym, p) for sym, p in probabilities.items()]
     if not heap:
         return None
     heapq.heapify(heap)
 
+    # Edge case: only one unique symbol
     if len(heap) == 1:
         only = heap[0]
         return HuffmanNode(symbol=None, prob=only.prob, left=only, right=None)
@@ -53,13 +49,14 @@ def build_huffman_tree(probabilities: Dict[str, float]) -> HuffmanNode:
     return heap[0]
 
 
-def build_huffman_codes(root: HuffmanNode) -> Dict[str, str]:
+def build_huffman_codes(root: Optional[HuffmanNode]) -> Dict[str, str]:
     codes: Dict[str, str] = {}
     if root is None:
         return codes
 
     def traverse(node: HuffmanNode, prefix: str) -> None:
         if node.symbol is not None:
+            # If tree has a single leaf, prefix can be empty → assign "0"
             codes[node.symbol] = prefix if prefix else "0"
             return
         if node.left:
@@ -75,22 +72,45 @@ def huffman_encode(text: str, codes: Dict[str, str]) -> str:
     return "".join(codes[ch] for ch in text)
 
 
-def huffman_decode(bits: str, root: HuffmanNode) -> str:
+def huffman_decode(bits: str, root: Optional[HuffmanNode]) -> str:
     if root is None:
         return ""
     result_chars: List[str] = []
     node = root
     for b in bits:
         node = node.left if b == "0" else node.right
+        if node is None:
+            # Should not happen for valid streams; stop to avoid crash
+            break
         if node.symbol is not None:
             result_chars.append(node.symbol)
             node = root
     return "".join(result_chars)
 
 
-# ---------------------
-# Hamming(7,4) (Parts 4–6)
-# ---------------------
+def huffman_decode_safe(bits: str, root: Optional[HuffmanNode]) -> Tuple[str, bool]:
+    """
+    Safe decode for corrupted streams.
+    Returns (decoded_text, ok_flag).
+    ok_flag=False if an invalid tree branch is hit (node becomes None).
+    """
+    if root is None:
+        return "", True
+
+    result_chars: List[str] = []
+    node = root
+
+    for b in bits:
+        node = node.left if b == "0" else node.right
+        if node is None:
+            return "".join(result_chars), False
+        if node.symbol is not None:
+            result_chars.append(node.symbol)
+            node = root
+
+    # If the stream ends mid-symbol, we still return what we decoded.
+    return "".join(result_chars), True
+
 
 def _bitstr_to_int_list(bits: str) -> List[int]:
     return [1 if b == "1" else 0 for b in bits]
@@ -106,6 +126,7 @@ def hamming_7_4_encode(bitstring: str) -> Tuple[str, int]:
 
     pad_bits = (4 - (len(bitstring) % 4)) % 4
     bitstring_padded = bitstring + "0" * pad_bits
+
     encoded_bits: List[int] = []
 
     for i in range(0, len(bitstring_padded), 4):
@@ -114,19 +135,36 @@ def hamming_7_4_encode(bitstring: str) -> Tuple[str, int]:
         d3 = int(bitstring_padded[i + 2])
         d4 = int(bitstring_padded[i + 3])
 
-        # Positions: 1 2 3 4 5 6 7
-        # Bits:     p1 p2 d1 p4 d2 d3 d4
+        # parity bits for Hamming(7,4)
         p1 = d1 ^ d2 ^ d4
         p2 = d1 ^ d3 ^ d4
         p4 = d2 ^ d3 ^ d4
 
+        # positions: 1=p1,2=p2,3=d1,4=p4,5=d2,6=d3,7=d4
         codeword = [p1, p2, d1, p4, d2, d3, d4]
         encoded_bits.extend(codeword)
 
     return _int_list_to_bitstr(encoded_bits), pad_bits
 
 
+def add_errors(bitstring: str, interval: int = 50, seed: int = 123) -> str:
+    if not bitstring or interval <= 0:
+        return bitstring
+
+    random.seed(seed)
+    bits = list(bitstring)
+
+    start_index = random.randint(0, max(0, interval - 1)) if interval > 1 else 0
+    for i in range(start_index, len(bits), interval):
+        bits[i] = "0" if bits[i] == "1" else "1"
+
+    return "".join(bits)
+
+
 def hamming_7_4_decode(encoded_bits: str, pad_bits: int) -> str:
+    """
+    Decode with single-bit error correction using syndrome.
+    """
     if not encoded_bits:
         return ""
 
@@ -143,7 +181,7 @@ def hamming_7_4_decode(encoded_bits: str, pad_bits: int) -> str:
         s2 = b2 ^ b3 ^ b6 ^ b7
         s4 = b4 ^ b5 ^ b6 ^ b7
 
-        error_pos = s1 + (s2 << 1) + (s4 << 2)
+        error_pos = s1 + (s2 << 1) + (s4 << 2)  # 1..7 or 0
 
         if error_pos != 0:
             idx = i + error_pos - 1
@@ -158,44 +196,48 @@ def hamming_7_4_decode(encoded_bits: str, pad_bits: int) -> str:
     return _int_list_to_bitstr(data_bits)
 
 
-# ---------------------
-# Add artificial errors (Part 5)
-# ---------------------
+def hamming_7_4_decode_no_correction(encoded_bits: str, pad_bits: int) -> str:
+    """
+    Decode WITHOUT correcting errors (used to see the effect of corruption).
+    Extract data bits positions (3,5,6,7) from each 7-bit block as-is.
+    """
+    if not encoded_bits:
+        return ""
 
-def add_errors(bitstring: str, interval: int = 50, seed: int = 123) -> str:
-    if not bitstring or interval <= 0:
-        return bitstring
+    if len(encoded_bits) % 7 != 0:
+        raise ValueError("Hamming(7,4) encoded length must be multiple of 7.")
 
-    random.seed(seed)
-    bits = list(bitstring)
-    start_index = random.randint(0, max(0, interval - 1)) if interval > 1 else 0
+    bits = _bitstr_to_int_list(encoded_bits)
+    data_bits: List[int] = []
 
-    for i in range(start_index, len(bits), interval):
-        bits[i] = "0" if bits[i] == "1" else "1"
+    for i in range(0, len(bits), 7):
+        b1, b2, b3, b4, b5, b6, b7 = bits[i:i + 7]
+        data_bits.extend([b3, b5, b6, b7])
 
-    return "".join(bits)
+    if pad_bits > 0:
+        data_bits = data_bits[:-pad_bits]
 
+    return _int_list_to_bitstr(data_bits)
 
-# ---------------------
-# One function that runs Parts 1–6 on a string
-# ---------------------
 
 def run_full_pipeline(text: str, error_interval: int = 50) -> dict:
-    """
-    Run Parts 1–6 on given text and return all important results.
-    """
     # Part 1
     probs = compute_symbol_probabilities(text)
 
     # Parts 2–3: Huffman
     root = build_huffman_tree(probs)
     codes = build_huffman_codes(root)
-    encoded_bits = huffman_encode(text, codes)
+    encoded_bits = huffman_encode(text, codes) if text else ""
     decoded_text = huffman_decode(encoded_bits, root)
 
-    # Parts 4–5–6: Hamming
+    # Parts 4–6: Hamming
     hamming_bits, pad_bits = hamming_7_4_encode(encoded_bits)
     corrupted_bits = add_errors(hamming_bits, interval=error_interval, seed=2024)
+
+    # NEW: decode corrupted bits without correction, then attempt Huffman decode (safe)
+    corrupted_data_bits = hamming_7_4_decode_no_correction(corrupted_bits, pad_bits)
+    corrupted_decoded_text, corrupted_decode_ok = huffman_decode_safe(corrupted_data_bits, root)
+
     recovered_bits = hamming_7_4_decode(corrupted_bits, pad_bits)
 
     return {
@@ -204,10 +246,18 @@ def run_full_pipeline(text: str, error_interval: int = 50) -> dict:
         "codes": codes,
         "encoded_bits": encoded_bits,
         "decoded_text": decoded_text,
+
         "hamming_bits": hamming_bits,
         "pad_bits": pad_bits,
         "corrupted_bits": corrupted_bits,
+
+        # NEW outputs
+        "corrupted_data_bits": corrupted_data_bits,
+        "corrupted_decoded_text": corrupted_decoded_text,
+        "corrupted_decode_ok": corrupted_decode_ok,
+
         "recovered_bits": recovered_bits,
+
         "huffman_ok": decoded_text == text,
         "hamming_ok": recovered_bits == encoded_bits,
     }
